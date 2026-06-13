@@ -14,6 +14,10 @@ export default function VoiceRecorder() {
   async function startRecording() {
     setError('')
     setResponse('')
+    if (!navigator.mediaDevices?.getUserMedia) {
+      setError('Recording requires HTTPS. Please use a secure connection.')
+      return
+    }
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
       streamRef.current = stream
@@ -29,6 +33,7 @@ export default function VoiceRecorder() {
       recorder.onstop = async () => {
         streamRef.current.getTracks().forEach((t) => t.stop())
         const blob = new Blob(chunksRef.current, { type: mimeType })
+        mediaRecorderRef.current = null
         await sendAudio(blob, mimeType)
       }
 
@@ -60,7 +65,8 @@ export default function VoiceRecorder() {
       const data = await res.json()
       setResponse(data.response)
       setUiState(STATES.DONE)
-    } catch {
+    } catch (err) {
+      console.error('Send error:', err)
       setError('Failed to send audio. Check your connection and try again.')
       setUiState(STATES.IDLE)
     }
