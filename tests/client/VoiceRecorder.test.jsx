@@ -85,3 +85,67 @@ describe('VoiceRecorder recording flow', () => {
     })
   })
 })
+
+describe('VoiceRecorder error handling', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+
+    let dataAvailableCallback = null
+    let stopCallback = null
+
+    global.MediaRecorder = vi.fn().mockImplementation(() => ({
+      start: vi.fn(),
+      stop: vi.fn(function () {
+        if (dataAvailableCallback) {
+          dataAvailableCallback({ data: new Blob(['audio'], { type: 'audio/mp4' }) })
+        }
+        if (stopCallback) stopCallback()
+      }),
+      set ondataavailable(cb) { dataAvailableCallback = cb },
+      set onstop(cb) { stopCallback = cb },
+    }))
+    MediaRecorder.isTypeSupported = vi.fn().mockReturnValue(true)
+
+    global.navigator.mediaDevices = {
+      getUserMedia: vi.fn().mockResolvedValue({
+        getTracks: () => [{ stop: vi.fn() }],
+      }),
+    }
+
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ response: 'ok' }),
+    })
+  })
+
+  it('shows mic permission message when getUserMedia is denied', async () => {
+    navigator.mediaDevices.getUserMedia = vi.fn().mockRejectedValue(
+      Object.assign(new Error('denied'), { name: 'NotAllowedError' })
+    )
+    render(<VoiceRecorder />)
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: /tap to record/i }))
+    })
+    await waitFor(() => {
+      expect(screen.getByRole('alert')).toHaveTextContent(
+        'Microphone access is required. Please allow it in Safari settings.'
+      )
+    })
+  })
+
+  it('shows network error message when fetch fails', async () => {
+    global.fetch = vi.fn().mockRejectedValue(new Error('Network error'))
+    render(<VoiceRecorder />)
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: /tap to record/i }))
+    })
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: /tap to stop/i }))
+    })
+    await waitFor(() => {
+      expect(screen.getByRole('alert')).toHaveTextContent(
+        'Failed to send audio. Check your connection and try again.'
+      )
+    })
+  })
+})
