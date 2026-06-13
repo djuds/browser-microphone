@@ -1,3 +1,15 @@
+import { vi } from 'vitest'
+
+vi.mock('@google/generative-ai', () => ({
+  GoogleGenerativeAI: vi.fn().mockImplementation(() => ({
+    getGenerativeModel: vi.fn().mockReturnValue({
+      generateContent: vi.fn().mockResolvedValue({
+        response: { text: () => 'I heard you say hello.' },
+      }),
+    }),
+  })),
+}))
+
 import request from 'supertest'
 import app from '../../server/index.js'
 
@@ -16,12 +28,12 @@ describe('POST /api/voice', () => {
     expect(res.body).toEqual({ error: 'No audio file received.' })
   })
 
-  it('returns 200 with a response property when file is attached', async () => {
+  it('returns 200 with response from Gemini when file is attached', async () => {
     const audioBuffer = Buffer.from('fake-audio-data')
     const res = await request(app)
       .post('/api/voice')
       .attach('audio', audioBuffer, { filename: 'recording.mp4', contentType: 'audio/mp4' })
     expect(res.status).toBe(200)
-    expect(res.body).toHaveProperty('response')
+    expect(res.body).toEqual({ response: 'I heard you say hello.' })
   })
 })
