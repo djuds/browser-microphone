@@ -1,1 +1,75 @@
-/* styles added in Task 10 */
+.voice-recorder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.5rem;
+  width: 100%;
+}
+
+.record-btn {
+  width: 160px;
+  height: 160px;
+  border-radius: 50%;
+  border: none;
+  cursor: pointer;
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  transition: transform 0.15s ease;
+  color: #fff;
+  background: #1a1a2e;
+  box-shadow: 0 0 0 4px #2a2a4e;
+}
+
+.record-btn--idle:active,
+.record-btn--done:active {
+  transform: scale(0.96);
+}
+
+.record-btn--recording {
+  background: #8b0000;
+  animation: pulse-ring 1.5s ease infinite;
+}
+
+.record-btn--sending {
+  background: #2a2a4e;
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+@keyframes pulse-ring {
+  0%   { box-shadow: 0 0 0 4px rgba(139, 0, 0, 0.6); }
+  70%  { box-shadow: 0 0 0 20px rgba(139, 0, 0, 0); }
+  100% { box-shadow: 0 0 0 4px rgba(139, 0, 0, 0); }
+}
+
+.status-indicator {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #ff3b30;
+  animation: blink 1s step-start infinite;
+}
+
+@keyframes blink {
+  50% { opacity: 0; }
+}
+
+.error-message {
+  color: #ff6b6b;
+  font-size: 0.875rem;
+  text-align: center;
+  max-width: 300px;
+}
+
+.response {
+  background: #1a1a2e;
+  border: 1px solid #2a2a4e;
+  border-radius: 12px;
+  padding: 1.25rem;
+  font-size: 1rem;
+  line-height: 1.6;
+  color: #e0e0e0;
+  width: 100%;
+  white-space: pre-wrap;
+}

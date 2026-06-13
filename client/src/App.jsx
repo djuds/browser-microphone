@@ -1,9 +1,10 @@
 import VoiceRecorder from './VoiceRecorder.jsx'
+import './App.css'
 
 export default function App() {
   return (
-    <main>
-      <h1>Voice to Gemini</h1>
+    <main className="app">
+      <h1 className="app-title">Voice to Gemini</h1>
       <VoiceRecorder />
     </main>
   )
