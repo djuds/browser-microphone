@@ -14,12 +14,16 @@ app.use(express.json())
 
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } })
 
-app.post('/api/voice', upload.single('audio'), async (req, res) => {
+app.post('/api/voice', upload.single('audio'), async (req, res, next) => {
   if (!req.file) {
     return res.status(400).json({ error: 'No audio file received.' })
   }
-  const text = await callGeminiWithAudio(req.file.buffer, req.file.mimetype)
-  res.json({ response: text })
+  try {
+    const text = await callGeminiWithAudio(req.file.buffer, req.file.mimetype)
+    res.json({ response: text })
+  } catch (err) {
+    next(err)
+  }
 })
 
 app.get('/health', (_req, res) => {
