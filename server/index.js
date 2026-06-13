@@ -30,14 +30,14 @@ app.get('*', (_req, res) => {
   res.sendFile(join(__dirname, '../client/dist/index.html'))
 })
 
-const PORT = process.env.PORT || 3001
-if (process.env.NODE_ENV !== 'test') {
-  app.listen(PORT, () => console.log(`Server running on port ${PORT}`))
-}
-
 app.use((err, _req, res, _next) => {
   if (err.code === 'LIMIT_FILE_SIZE') return res.status(413).json({ error: 'File too large.' })
   res.status(500).json({ error: 'Internal server error.' })
 })
+
+const PORT = process.env.PORT || 3001
+if (process.env.NODE_ENV !== 'test') {
+  app.listen(PORT, () => console.log(`Server running on port ${PORT}`))
+}
 
 export default app
