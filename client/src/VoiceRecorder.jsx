@@ -1,7 +1,7 @@
 import { useState, useRef } from 'react'
 import './VoiceRecorder.css'
 
-const STATES = { IDLE: 'idle', RECORDING: 'recording', SENDING: 'sending', DONE: 'done' }
+export const STATES = { IDLE: 'idle', RECORDING: 'recording', SENDING: 'sending', DONE: 'done' }
 
 export default function VoiceRecorder() {
   const [uiState, setUiState] = useState(STATES.IDLE)
@@ -22,7 +22,7 @@ export default function VoiceRecorder() {
       >
         {(uiState === STATES.IDLE || uiState === STATES.DONE) && 'Tap to Record'}
         {uiState === STATES.RECORDING && 'Tap to Stop'}
-        {uiState === STATES.SENDING && '...'}
+        {uiState === STATES.SENDING && <span aria-label="Sending">...</span>}
       </button>
       {uiState === STATES.RECORDING && <div className="status-indicator" />}
       {error && <p role="alert" className="error-message">{error}</p>}
