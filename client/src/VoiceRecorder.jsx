@@ -11,7 +11,66 @@ export default function VoiceRecorder() {
   const chunksRef = useRef([])
   const streamRef = useRef(null)
 
-  function handleClick() {}
+  async function startRecording() {
+    setError('')
+    setResponse('')
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      streamRef.current = stream
+      const mimeType = MediaRecorder.isTypeSupported('audio/mp4') ? 'audio/mp4' : 'audio/webm'
+      const recorder = new MediaRecorder(stream, { mimeType })
+      mediaRecorderRef.current = recorder
+      chunksRef.current = []
+
+      recorder.ondataavailable = (e) => {
+        if (e.data.size > 0) chunksRef.current.push(e.data)
+      }
+
+      recorder.onstop = async () => {
+        streamRef.current.getTracks().forEach((t) => t.stop())
+        const blob = new Blob(chunksRef.current, { type: mimeType })
+        await sendAudio(blob, mimeType)
+      }
+
+      recorder.start()
+      setUiState(STATES.RECORDING)
+    } catch (err) {
+      if (err.name === 'NotAllowedError') {
+        setError('Microphone access is required. Please allow it in Safari settings.')
+      } else {
+        setError('Your browser does not support audio recording.')
+      }
+    }
+  }
+
+  function stopRecording() {
+    if (mediaRecorderRef.current) {
+      mediaRecorderRef.current.stop()
+      setUiState(STATES.SENDING)
+    }
+  }
+
+  async function sendAudio(blob, mimeType) {
+    try {
+      const ext = mimeType === 'audio/mp4' ? 'mp4' : 'webm'
+      const form = new FormData()
+      form.append('audio', blob, `recording.${ext}`)
+      const res = await fetch('/api/voice', { method: 'POST', body: form })
+      if (!res.ok) throw new Error('Server error')
+      const data = await res.json()
+      setResponse(data.response)
+      setUiState(STATES.DONE)
+    } catch {
+      setError('Failed to send audio. Check your connection and try again.')
+      setUiState(STATES.IDLE)
+    }
+  }
+
+  // DONE behaves like IDLE — tapping again starts a new recording
+  function handleClick() {
+    if (uiState === STATES.IDLE || uiState === STATES.DONE) startRecording()
+    else if (uiState === STATES.RECORDING) stopRecording()
+  }
 
   return (
     <div className="voice-recorder">

@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
 import { vi } from 'vitest'
 import VoiceRecorder from '../../client/src/VoiceRecorder.jsx'
 
@@ -26,5 +26,62 @@ describe('VoiceRecorder idle state', () => {
     render(<VoiceRecorder />)
     expect(screen.queryByRole('article')).not.toBeInTheDocument()
     expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+  })
+})
+
+describe('VoiceRecorder recording flow', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+
+    let dataAvailableCallback = null
+    let stopCallback = null
+
+    global.MediaRecorder = vi.fn().mockImplementation(() => ({
+      start: vi.fn(),
+      stop: vi.fn(function () {
+        if (dataAvailableCallback) {
+          dataAvailableCallback({ data: new Blob(['audio'], { type: 'audio/mp4' }) })
+        }
+        if (stopCallback) stopCallback()
+      }),
+      set ondataavailable(cb) { dataAvailableCallback = cb },
+      set onstop(cb) { stopCallback = cb },
+    }))
+    MediaRecorder.isTypeSupported = vi.fn().mockReturnValue(true)
+
+    global.navigator.mediaDevices = {
+      getUserMedia: vi.fn().mockResolvedValue({
+        getTracks: () => [{ stop: vi.fn() }],
+      }),
+    }
+
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ response: 'Gemini says hello.' }),
+    })
+  })
+
+  it('shows "Tap to Stop" and recording indicator after tapping record', async () => {
+    render(<VoiceRecorder />)
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: /tap to record/i }))
+    })
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /tap to stop/i })).toBeInTheDocument()
+      expect(document.querySelector('.status-indicator')).toBeInTheDocument()
+    })
+  })
+
+  it('shows Gemini response after stopping recording', async () => {
+    render(<VoiceRecorder />)
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: /tap to record/i }))
+    })
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: /tap to stop/i }))
+    })
+    await waitFor(() => {
+      expect(screen.getByRole('article')).toHaveTextContent('Gemini says hello.')
+    })
   })
 })
