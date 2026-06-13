@@ -36,7 +36,8 @@ app.get('*', (_req, res) => {
 
 app.use((err, _req, res, _next) => {
   if (err.code === 'LIMIT_FILE_SIZE') return res.status(413).json({ error: 'File too large.' })
-  res.status(500).json({ error: 'Internal server error.' })
+  console.error('Server error:', err.message)
+  res.status(500).json({ error: 'Failed to process audio. Please try again.' })
 })
 
 const PORT = process.env.PORT || 3001
