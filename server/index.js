@@ -7,8 +7,8 @@ const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
 
 const app = express()
-app.use(express.json())
 app.use(express.static(join(__dirname, '../client/dist')))
+app.use(express.json())
 
 app.get('/health', (_req, res) => {
   res.json({ status: 'ok' })
