@@ -8,3 +8,20 @@ describe('GET /health', () => {
     expect(res.body).toEqual({ status: 'ok' })
   })
 })
+
+describe('POST /api/voice', () => {
+  it('returns 400 when no file is attached', async () => {
+    const res = await request(app).post('/api/voice')
+    expect(res.status).toBe(400)
+    expect(res.body).toEqual({ error: 'No audio file received.' })
+  })
+
+  it('returns 200 with a response property when file is attached', async () => {
+    const audioBuffer = Buffer.from('fake-audio-data')
+    const res = await request(app)
+      .post('/api/voice')
+      .attach('audio', audioBuffer, { filename: 'recording.mp4', contentType: 'audio/mp4' })
+    expect(res.status).toBe(200)
+    expect(res.body).toHaveProperty('response')
+  })
+})
