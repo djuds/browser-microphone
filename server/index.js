@@ -17,6 +17,14 @@ app.use(express.json())
 
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } })
 
+app.use('/api', (req, res, next) => {
+  const key = req.headers['x-api-key']
+  if (!key || key !== process.env.API_SECRET_KEY) {
+    return res.status(401).json({ error: 'Unauthorized' })
+  }
+  next()
+})
+
 app.post('/api/voice', upload.single('audio'), async (req, res, next) => {
   if (!req.file) {
     return res.status(400).json({ error: 'No audio file received.' })
