@@ -13,6 +13,18 @@ vi.mock('@google/generative-ai', () => ({
 import request from 'supertest'
 import app from '../../server/index.js'
 
+describe('CORS', () => {
+  it('allows requests from dpj.design', async () => {
+    const res = await request(app).get('/health').set('Origin', 'https://dpj.design')
+    expect(res.headers['access-control-allow-origin']).toBe('https://dpj.design')
+  })
+
+  it('allows requests from localhost:5173', async () => {
+    const res = await request(app).get('/health').set('Origin', 'http://localhost:5173')
+    expect(res.headers['access-control-allow-origin']).toBe('http://localhost:5173')
+  })
+})
+
 describe('GET /health', () => {
   it('returns 200 with status ok', async () => {
     const res = await request(app).get('/health')
