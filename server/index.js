@@ -10,7 +10,8 @@ const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
 
 const app = express()
-app.use(cors({ origin: ['https://dpj.design', 'http://localhost:5173'] }))
+const allowedOrigins = (process.env.ALLOWED_ORIGINS || 'https://estimate.dpj.design').split(',')
+app.use(cors({ origin: allowedOrigins }))
 app.use(express.static(join(__dirname, '../client/dist')))
 app.use(express.json())
 
