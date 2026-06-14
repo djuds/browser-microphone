@@ -4,7 +4,7 @@ import { dirname, join } from 'path'
 import 'dotenv/config'
 import multer from 'multer'
 import cors from 'cors'
-import { callGeminiWithAudio } from './gemini.js'
+import { callGeminiWithAudio, callGeminiForLineItems } from './gemini.js'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
@@ -23,6 +23,25 @@ app.post('/api/voice', upload.single('audio'), async (req, res, next) => {
   try {
     const text = await callGeminiWithAudio(req.file.buffer, req.file.mimetype)
     res.json({ response: text })
+  } catch (err) {
+    next(err)
+  }
+})
+
+app.post('/api/parse-line-item', upload.single('audio'), async (req, res, next) => {
+  if (!req.file) return res.status(400).json({ error: 'No audio file received.' })
+  if (!req.body.priceListItems) return res.status(400).json({ error: 'priceListItems is required.' })
+
+  let priceListItems
+  try {
+    priceListItems = JSON.parse(req.body.priceListItems)
+  } catch {
+    return res.status(400).json({ error: 'priceListItems must be valid JSON.' })
+  }
+
+  try {
+    const result = await callGeminiForLineItems(req.file.buffer, req.file.mimetype, priceListItems)
+    res.json(result)
   } catch (err) {
     next(err)
   }

@@ -110,3 +110,82 @@ describe('POST /api/voice', () => {
     expect(res.body).toEqual({ error: 'Failed to process audio. Please try again.' })
   })
 })
+
+describe('POST /api/parse-line-item', () => {
+  const sampleItems = [
+    { id: 'demo_vanity', name: 'Remove bathroom vanity', unit: 'EA' },
+    { id: 'demo_drywall', name: 'Remove drywall',        unit: 'SF' },
+  ]
+
+  it('returns 400 when no audio file is attached', async () => {
+    const res = await request(app)
+      .post('/api/parse-line-item')
+      .field('priceListItems', JSON.stringify(sampleItems))
+    expect(res.status).toBe(400)
+    expect(res.body).toEqual({ error: 'No audio file received.' })
+  })
+
+  it('returns 400 when priceListItems is missing', async () => {
+    const audioBuffer = Buffer.from('fake-audio-data')
+    const res = await request(app)
+      .post('/api/parse-line-item')
+      .attach('audio', audioBuffer, { filename: 'recording.mp4', contentType: 'audio/mp4' })
+    expect(res.status).toBe(400)
+    expect(res.body).toEqual({ error: 'priceListItems is required.' })
+  })
+
+  it('returns 400 when priceListItems is invalid JSON', async () => {
+    const audioBuffer = Buffer.from('fake-audio-data')
+    const res = await request(app)
+      .post('/api/parse-line-item')
+      .attach('audio', audioBuffer, { filename: 'recording.mp4', contentType: 'audio/mp4' })
+      .field('priceListItems', 'not-valid-json')
+    expect(res.status).toBe(400)
+    expect(res.body).toEqual({ error: 'priceListItems must be valid JSON.' })
+  })
+
+  it('returns 200 with structured items from Gemini', async () => {
+    const geminiResponse = {
+      transcript: 'demo vanity and drywall',
+      items: [
+        { itemId: 'demo_vanity', qty: 1,    needsQty: false },
+        { itemId: 'demo_drywall', qty: null, needsQty: true  },
+      ],
+    }
+    const { GoogleGenerativeAI } = await import('@google/generative-ai')
+    GoogleGenerativeAI.mockImplementationOnce(() => ({
+      getGenerativeModel: vi.fn().mockReturnValue({
+        generateContent: vi.fn().mockResolvedValue({
+          response: { text: () => JSON.stringify(geminiResponse) },
+        }),
+      }),
+    }))
+
+    const audioBuffer = Buffer.from('fake-audio-data')
+    const res = await request(app)
+      .post('/api/parse-line-item')
+      .attach('audio', audioBuffer, { filename: 'recording.mp4', contentType: 'audio/mp4' })
+      .field('priceListItems', JSON.stringify(sampleItems))
+
+    expect(res.status).toBe(200)
+    expect(res.body).toEqual(geminiResponse)
+  })
+
+  it('returns 500 when Gemini throws', async () => {
+    const { GoogleGenerativeAI } = await import('@google/generative-ai')
+    GoogleGenerativeAI.mockImplementationOnce(() => ({
+      getGenerativeModel: () => ({
+        generateContent: vi.fn().mockRejectedValueOnce(new Error('API error')),
+      }),
+    }))
+
+    const audioBuffer = Buffer.from('fake-audio-data')
+    const res = await request(app)
+      .post('/api/parse-line-item')
+      .attach('audio', audioBuffer, { filename: 'recording.mp4', contentType: 'audio/mp4' })
+      .field('priceListItems', JSON.stringify(sampleItems))
+
+    expect(res.status).toBe(500)
+    expect(res.body).toEqual({ error: 'Failed to process audio. Please try again.' })
+  })
+})

@@ -60,5 +60,11 @@ export async function callGeminiForLineItems(audioBuffer, mimeType, priceListIte
     },
   ])
 
-  return JSON.parse(result.response.text())
+  const raw = result.response.text()
+  try {
+    return JSON.parse(raw)
+  } catch (err) {
+    console.error('Gemini returned unparseable JSON:', raw)
+    throw err
+  }
 }
